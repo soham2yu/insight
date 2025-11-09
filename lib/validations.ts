@@ -60,7 +60,18 @@ export const leaseSchema = z.object({
   path: ['end_date'],
 });
 
-export const leaseUpdateSchema = leaseSchema.partial();
+export const leaseUpdateSchema = z.object({
+  tenant_id: z.string().uuid('Invalid tenant ID').optional(),
+  property_id: z.string().uuid('Invalid property ID').optional(),
+  unit_number: z.string().optional(),
+  start_date: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid start date').optional(),
+  end_date: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid end date').optional(),
+  monthly_rent: z.number().positive('Monthly rent must be positive').optional(),
+  security_deposit: z.number().min(0, 'Security deposit cannot be negative').optional(),
+  pet_deposit: z.number().min(0, 'Pet deposit cannot be negative').optional(),
+  status: z.enum(['active', 'expired', 'terminated', 'draft']).optional(),
+  lease_terms: z.string().optional(),
+});
 
 // Maintenance validation schemas
 export const maintenanceSchema = z.object({

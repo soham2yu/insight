@@ -4,7 +4,7 @@
 - ✅ API routes and database functions implemented
 - ✅ Validations with Zod schemas in place
 - ✅ Authentication with Firebase
-- ✅ Tenants page updated with API integration
+- ✅ Tenants page updated with API integration (basic fetch)
 - ❌ Frontend pages using static mock data (leases, maintenance)
 - ❌ No real-time updates
 - ❌ No notifications system

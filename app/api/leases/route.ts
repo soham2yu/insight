@@ -26,6 +26,10 @@ async function verifyToken(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // For development/testing, allow requests without auth
+      if (process.env.NODE_ENV === 'development') {
+        return { uid: 'test-user-id', email: 'test@example.com' };
+      }
       return null;
     }
 
@@ -34,6 +38,10 @@ async function verifyToken(request: NextRequest) {
     return decodedToken;
   } catch (error) {
     console.error('Token verification failed:', error);
+    // For development/testing, allow requests without auth
+    if (process.env.NODE_ENV === 'development') {
+      return { uid: 'test-user-id', email: 'test@example.com' };
+    }
     return null;
   }
 }

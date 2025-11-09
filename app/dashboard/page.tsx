@@ -1,15 +1,17 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import DashboardNav from "@/components/dashboard-nav"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import DashboardStats from "@/components/dashboard-stats"
 import DashboardRecentActivity from "@/components/dashboard-recent-activity"
 import { ExpandableTabs } from "@/components/ui/expandable-tabs"
-import { Home, Users, FileText, Wrench, BarChart3, Settings, Bell, Search } from "lucide-react"
+import { Home, Users, FileText, Wrench, BarChart3, Settings, Bell, Search, Plus } from "lucide-react"
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState(0)
+  const router = useRouter()
 
   const tabs = [
     { title: "Overview", icon: Home },
@@ -21,9 +23,26 @@ export default function DashboardPage() {
     { title: "Settings", icon: Settings },
   ]
 
-  const handleTabChange = (index: number) => {
+  const handleTabChange = (index: number | null) => {
+    if (index === null) return
     setActiveTab(index)
     console.log("Selected tab:", index)
+  }
+
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'tenant':
+        router.push('/tenants')
+        break
+      case 'lease':
+        router.push('/leases')
+        break
+      case 'maintenance':
+        router.push('/maintenance')
+        break
+      default:
+        break
+    }
   }
 
   return (
@@ -69,13 +88,25 @@ export default function DashboardPage() {
                 <div className="bg-card border border-border rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
                   <div className="space-y-2">
-                    <button className="w-full px-4 py-2 text-left text-sm hover:bg-muted rounded transition-colors text-foreground">
+                    <button
+                      onClick={() => handleQuickAction('tenant')}
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-muted rounded transition-colors text-foreground flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
                       Add New Tenant
                     </button>
-                    <button className="w-full px-4 py-2 text-left text-sm hover:bg-muted rounded transition-colors text-foreground">
+                    <button
+                      onClick={() => handleQuickAction('lease')}
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-muted rounded transition-colors text-foreground flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
                       Create New Lease
                     </button>
-                    <button className="w-full px-4 py-2 text-left text-sm hover:bg-muted rounded transition-colors text-foreground">
+                    <button
+                      onClick={() => handleQuickAction('maintenance')}
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-muted rounded transition-colors text-foreground flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
                       Log Maintenance Issue
                     </button>
                   </div>

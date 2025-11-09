@@ -9,6 +9,7 @@ import { ExpandableTabs } from "@/components/ui/expandable-tabs"
 import { Plus, Search, Trash2, Edit, Users, UserCheck, UserX, Bell, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/useAuth"
+import { tenantsApi } from "@/lib/api"
 
 interface Tenant {
   id: string
@@ -45,19 +46,13 @@ export default function TenantsPage() {
 
       try {
         setLoading(true)
-        const response = await fetch('/api/tenants', {
-          headers: {
-            'Authorization': `Bearer ${await user.getIdToken()}`,
-          },
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch tenants')
+        const result = await tenantsApi.getAll()
+        if (result.error) {
+          setError(result.error)
+        } else {
+          setTenants(result.data || [])
+          setFiltered(result.data || [])
         }
-
-        const result = await response.json()
-        setTenants(result.data || [])
-        setFiltered(result.data || [])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -89,6 +84,32 @@ export default function TenantsPage() {
     setFiltered(filteredTenants)
   }
 
+  // Handle delete tenant
+  const handleDeleteTenant = async (tenantId: string) => {
+    if (!confirm('Are you sure you want to delete this tenant? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const result = await tenantsApi.delete(tenantId)
+      if (result.error) {
+        alert('Failed to delete tenant: ' + result.error)
+      } else {
+        // Refresh the tenants list
+        const fetchResult = await tenantsApi.getAll()
+        if (fetchResult.error) {
+          setError(fetchResult.error)
+        } else {
+          setTenants(fetchResult.data || [])
+          setFiltered(fetchResult.data || [])
+        }
+        alert('Tenant deleted successfully')
+      }
+    } catch (err) {
+      alert('An error occurred while deleting the tenant')
+    }
+  }
+
   // Filter tenants based on search term
   const searchFiltered = filtered.filter(
     (tenant) =>
@@ -116,7 +137,7 @@ export default function TenantsPage() {
                     className="pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => {/* TODO: Open create tenant modal */}}>
                   <Plus className="w-4 h-4" />
                   Add Tenant
                 </Button>
@@ -174,10 +195,16 @@ export default function TenantsPage() {
                             </span>
                           </td>
                           <td className="py-3 px-4 flex gap-2">
-                            <button className="p-2 hover:bg-muted rounded transition-colors">
+                            <button
+                              className="p-2 hover:bg-muted rounded transition-colors"
+                              onClick={() => {/* TODO: Open edit tenant modal */}}
+                            >
                               <Edit className="w-4 h-4 text-muted-foreground" />
                             </button>
-                            <button className="p-2 hover:bg-muted rounded transition-colors">
+                            <button
+                              className="p-2 hover:bg-muted rounded transition-colors"
+                              onClick={() => handleDeleteTenant(tenant.id)}
+                            >
                               <Trash2 className="w-4 h-4 text-destructive" />
                             </button>
                           </td>

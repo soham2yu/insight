@@ -9,6 +9,7 @@ import { ExpandableTabs } from "@/components/ui/expandable-tabs"
 import { Plus, Search, Trash2, Edit, Clock, CheckCircle2, Wrench, AlertTriangle, CheckCircle, Bell, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/useAuth"
+import { maintenanceApi } from "@/lib/api"
 
 interface MaintenanceRequest {
   id: string
@@ -55,19 +56,13 @@ export default function MaintenancePage() {
 
       try {
         setLoading(true)
-        const response = await fetch('/api/maintenance', {
-          headers: {
-            'Authorization': `Bearer ${await user.getIdToken()}`,
-          },
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch maintenance requests')
+        const result = await maintenanceApi.getAll()
+        if (result.error) {
+          setError(result.error)
+        } else {
+          setMaintenanceRequests(result.data || [])
+          setFiltered(result.data || [])
         }
-
-        const result = await response.json()
-        setMaintenanceRequests(result.data || [])
-        setFiltered(result.data || [])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -102,12 +97,40 @@ export default function MaintenancePage() {
     setFiltered(filteredRequests)
   }
 
+  // Handle delete maintenance request
+  const handleDeleteMaintenance = async (maintenanceId: string) => {
+    if (!confirm('Are you sure you want to delete this maintenance request? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const result = await maintenanceApi.delete(maintenanceId)
+      if (result.error) {
+        alert('Failed to delete maintenance request: ' + result.error)
+      } else {
+        // Refresh the maintenance requests list
+        const fetchResult = await maintenanceApi.getAll()
+        if (fetchResult.error) {
+          setError(fetchResult.error)
+        } else {
+          setMaintenanceRequests(fetchResult.data || [])
+          setFiltered(fetchResult.data || [])
+        }
+        alert('Maintenance request deleted successfully')
+      }
+    } catch (err) {
+      alert('An error occurred while deleting the maintenance request')
+    }
+  }
+
   // Filter maintenance requests based on search term
   const searchFiltered = filtered.filter(
     (item) => {
-      const tenantName = item.tenants ? `${item.tenants.first_name} ${item.tenants.last_name}` : ''
+      const tenantName = item.tenants ? `${item.tenants.first_name} ${item.tenants.last_name}` : 'No Tenant Assigned'
       return item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             tenantName.toLowerCase().includes(searchTerm.toLowerCase())
+             tenantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             item.unit_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             item.category?.toLowerCase().includes(searchTerm.toLowerCase())
     },
   )
 
@@ -146,7 +169,7 @@ export default function MaintenancePage() {
                     className="pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => {/* TODO: Open create maintenance modal */}}>
                   <Plus className="w-4 h-4" />
                   Report Issue
                 </Button>
@@ -226,14 +249,20 @@ export default function MaintenancePage() {
                           <td className="py-3 px-4 text-muted-foreground">
                             {new Date(item.created_at).toLocaleDateString()}
                           </td>
-                          <td className="py-3 px-4 flex gap-2">
-                            <button className="p-2 hover:bg-muted rounded transition-colors">
-                              <Edit className="w-4 h-4 text-muted-foreground" />
-                            </button>
-                            <button className="p-2 hover:bg-muted rounded transition-colors">
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </button>
-                          </td>
+                        <td className="py-3 px-4 flex gap-2">
+                          <button
+                            className="p-2 hover:bg-muted rounded transition-colors"
+                            onClick={() => {/* TODO: Open edit maintenance modal */}}
+                          >
+                            <Edit className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                          <button
+                            className="p-2 hover:bg-muted rounded transition-colors"
+                            onClick={() => handleDeleteMaintenance(item.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </button>
+                        </td>
                         </tr>
                       ))}
                     </tbody>

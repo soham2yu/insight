@@ -9,6 +9,7 @@ import { ExpandableTabs } from "@/components/ui/expandable-tabs"
 import { Plus, Search, Trash2, Edit, AlertCircle, FileText, Clock, CheckCircle, Bell, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/useAuth"
+import { leasesApi } from "@/lib/api"
 
 interface Lease {
   id: string
@@ -53,19 +54,13 @@ export default function LeasesPage() {
 
       try {
         setLoading(true)
-        const response = await fetch('/api/leases', {
-          headers: {
-            'Authorization': `Bearer ${await user.getIdToken()}`,
-          },
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch leases')
+        const result = await leasesApi.getAll()
+        if (result.error) {
+          setError(result.error)
+        } else {
+          setLeases(result.data || [])
+          setFiltered(result.data || [])
         }
-
-        const result = await response.json()
-        setLeases(result.data || [])
-        setFiltered(result.data || [])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -111,10 +106,36 @@ export default function LeasesPage() {
     return diffDays
   }
 
+  // Handle delete lease
+  const handleDeleteLease = async (leaseId: string) => {
+    if (!confirm('Are you sure you want to delete this lease? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const result = await leasesApi.delete(leaseId)
+      if (result.error) {
+        alert('Failed to delete lease: ' + result.error)
+      } else {
+        // Refresh the leases list
+        const fetchResult = await leasesApi.getAll()
+        if (fetchResult.error) {
+          setError(fetchResult.error)
+        } else {
+          setLeases(fetchResult.data || [])
+          setFiltered(fetchResult.data || [])
+        }
+        alert('Lease deleted successfully')
+      }
+    } catch (err) {
+      alert('An error occurred while deleting the lease')
+    }
+  }
+
   // Filter leases based on search term
   const searchFiltered = filtered.filter(
     (lease) => {
-      const tenantName = `${lease.tenants.first_name} ${lease.tenants.last_name}`
+      const tenantName = lease.tenants ? `${lease.tenants.first_name} ${lease.tenants.last_name}` : 'Unknown Tenant'
       return tenantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
              (lease.unit_number && lease.unit_number.includes(searchTerm))
     },
@@ -140,7 +161,7 @@ export default function LeasesPage() {
                     className="pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => {/* TODO: Open create lease modal */}}>
                   <Plus className="w-4 h-4" />
                   Create Lease
                 </Button>
@@ -192,7 +213,7 @@ export default function LeasesPage() {
                         return (
                           <tr key={lease.id} className="border-b border-border hover:bg-muted/50">
                             <td className="py-3 px-4 text-foreground">
-                              {lease.tenants.first_name} {lease.tenants.last_name}
+                              {lease.tenants ? `${lease.tenants.first_name} ${lease.tenants.last_name}` : 'Unknown Tenant'}
                             </td>
                             <td className="py-3 px-4 text-foreground font-medium">
                               {lease.unit_number || 'N/A'}
@@ -223,10 +244,16 @@ export default function LeasesPage() {
                               </div>
                             </td>
                             <td className="py-3 px-4 flex gap-2">
-                              <button className="p-2 hover:bg-muted rounded transition-colors">
+                              <button
+                                className="p-2 hover:bg-muted rounded transition-colors"
+                                onClick={() => {/* TODO: Open edit lease modal */}}
+                              >
                                 <Edit className="w-4 h-4 text-muted-foreground" />
                               </button>
-                              <button className="p-2 hover:bg-muted rounded transition-colors">
+                              <button
+                                className="p-2 hover:bg-muted rounded transition-colors"
+                                onClick={() => handleDeleteLease(lease.id)}
+                              >
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </button>
                             </td>
