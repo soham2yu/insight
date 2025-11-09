@@ -20,7 +20,6 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "Tenant Insights & Maintenance Hub",
   description: "Smart Property Management Platform",
-  generator: "v0.app",
 }
 
 export default function RootLayout({
