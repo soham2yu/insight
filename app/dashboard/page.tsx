@@ -1,0 +1,159 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import DashboardNav from "@/components/dashboard-nav"
+import DashboardSidebar from "@/components/dashboard-sidebar"
+import DashboardStats from "@/components/dashboard-stats"
+import DashboardRecentActivity from "@/components/dashboard-recent-activity"
+import { ExpandableTabs } from "@/components/ui/expandable-tabs"
+import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard"
+import { Home, Users, FileText, Wrench, BarChart3, Settings, Bell, Search, Plus } from "lucide-react"
+
+export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState(0)
+  const router = useRouter()
+  const { stats, activities, loading, error, freshnessLabel, refresh } = useRealtimeDashboard(15000)
+
+  const tabs = [
+    { title: "Overview", icon: Home },
+    { title: "Tenants", icon: Users },
+    { title: "Leases", icon: FileText },
+    { title: "Maintenance", icon: Wrench },
+    { title: "Analytics", icon: BarChart3 },
+    { type: "separator" as const },
+    { title: "Settings", icon: Settings },
+  ]
+
+  const handleTabChange = (index: number | null) => {
+    if (index === null) return
+    setActiveTab(index)
+    console.log("Selected tab:", index)
+  }
+
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'tenant':
+        router.push('/tenants')
+        break
+      case 'lease':
+        router.push('/leases')
+        break
+      case 'maintenance':
+        router.push('/maintenance')
+        break
+      default:
+        break
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <DashboardNav />
+      <div className="flex">
+        <DashboardSidebar />
+        <main className="flex-1 p-6 md:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-4 md:mb-0">Dashboard</h1>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <button className="relative p-2 border border-border rounded-lg bg-background hover:bg-muted transition-colors">
+                  <Bell className="w-4 h-4 text-foreground" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-8 rounded-2xl border border-border bg-linear-to-r from-card to-card/70 p-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Today at a glance</p>
+                  <h2 className="text-2xl font-semibold text-foreground">Operations are stable and improving</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">{freshnessLabel}</p>
+                  {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+                </div>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  <span className="rounded-full border border-border bg-background px-3 py-1 text-foreground">{stats.openMaintenance} open tickets</span>
+                  <span className="rounded-full border border-border bg-background px-3 py-1 text-foreground">{stats.activeLeases} active leases</span>
+                  <span className="rounded-full border border-border bg-background px-3 py-1 text-foreground">${stats.monthlyRevenue.toLocaleString()} revenue</span>
+                  <button onClick={refresh} className="rounded-full border border-border bg-background px-3 py-1 text-foreground hover:bg-muted transition-colors">Refresh now</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <ExpandableTabs
+                tabs={tabs}
+                className="w-full md:w-auto"
+                activeColor="text-primary"
+                onChange={handleTabChange}
+              />
+            </div>
+
+            <DashboardStats stats={stats} loading={loading} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <DashboardRecentActivity activities={activities} loading={loading} />
+              </div>
+              <div className="space-y-6">
+                <div className="bg-card border border-border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => handleQuickAction('tenant')}
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-muted rounded transition-colors text-foreground flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add New Tenant
+                    </button>
+                    <button
+                      onClick={() => handleQuickAction('lease')}
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-muted rounded transition-colors text-foreground flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create New Lease
+                    </button>
+                    <button
+                      onClick={() => handleQuickAction('maintenance')}
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-muted rounded transition-colors text-foreground flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Log Maintenance Issue
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">System Health</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Real-time service and workflow reliability.</p>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">API Uptime</span>
+                      <span className="font-medium text-foreground">99.99%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Sync Status</span>
+                      <span className="font-medium text-emerald-500">Healthy</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Background Jobs</span>
+                      <span className="font-medium text-foreground">12 Running</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
